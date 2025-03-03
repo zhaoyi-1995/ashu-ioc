@@ -1,26 +1,18 @@
-interface IIndexService {
-  log(str: string): void
-}
-
-class IndexService implements IIndexService {
-  log(str: string) {
-    console.log(str)
+class CreateIoc {
+  public container: Map<symbol, {callback: Function}>
+  constructor() {
+    this.container = new Map()
   }
-}
-
-class IndexController {
-  public indexService!: IndexService
-
-  constructor(indexService?: IndexService) {
-    if(indexService) {
-      this.indexService = indexService
+  get(namespace: symbol) {
+    const item = this.container.get(namespace)
+    if(item) {
+      return item.callback()
+    }else {
+      throw new Error('暂时未找到实例')
     }
-  }
-  info() {
-    this.indexService.log('阿树,这一生啊')
+  } 
+  bind(key: symbol, callback: Function) {
+    this.container.set(key, {callback})
   }
 }
-const service = new IndexService()
-const index = new IndexController(service)
-
-index.info()
+export default CreateIoc
