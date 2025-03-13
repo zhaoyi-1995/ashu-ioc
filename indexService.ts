@@ -1,6 +1,7 @@
 import { Parser } from "acorn"
 import { simple } from "acorn-walk"
 import CreateIoc from "./ioc"
+import 'reflect-metadata'
 
 interface IIndexService {
   log(str: string): void
@@ -42,6 +43,13 @@ function extractConstructorParams(classNode: Function) {
 function haskey <O extends Object>(obj: O, key: PropertyKey): key is keyof O {
   return obj.hasOwnProperty(key)
 }
+function inject(serviceIdentifier: symbol) {
+  return (target: Object, targetKey: string | undefined, index: number) => {
+    if(!targetKey) {
+      Reflect.defineMetadata(serviceIdentifier, container.get(serviceIdentifier), target)
+    }
+  }
+}
 
 function controller <T extends {new (...arg: any[]): {}}>(constructor: T) {
   return class extends constructor {
@@ -52,7 +60,12 @@ function controller <T extends {new (...arg: any[]): {}}>(constructor: T) {
       let identity: string
       for(identity of _params) {
         if(haskey(this, identity)) {
-          this[identity] = container.get(TYPES[identity as keyof typeof TYPES])
+          // this[identity] = container.get(TYPES[identity as keyof typeof TYPES])
+          // 通过反射的形式去设定目标的代码
+          this[identity] = Reflect.getMetadata(
+            TYPES[identity as keyof typeof TYPES],
+            constructor
+          )
         }
         
       }
@@ -67,7 +80,7 @@ function controller <T extends {new (...arg: any[]): {}}>(constructor: T) {
 class IndexController {
   public indexService!: IndexService
 
-  constructor(indexService?: IndexService) {
+  constructor(@inject(TYPES.indexService) indexService?: IndexService) {
     if(indexService) {
       this.indexService = indexService
     }
